@@ -2,7 +2,58 @@ from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
 
-# HTML 模板
+# 纺织品价格计算器逻辑
+def calculate_profit(data):
+    try:
+        width = float(data.get('width', 0))
+        weft_density = float(data.get('weft_density', 0))
+        head_count = float(data.get('head_count', 0))
+        warp_d = float(data.get('warp_d', 0))
+        weft_d = float(data.get('weft_d', 0))
+        warp_price = float(data.get('warp_price', 0))
+        weft_price = float(data.get('weft_price', 0))
+        machine_speed = float(data.get('machine_speed', 0))
+        shrinkage = float(data.get('shrinkage', 0))
+        warping_cost = float(data.get('warping_cost', 0))
+        invoice_price = float(data.get('invoice_price', 0))
+
+        # 计算经向克重
+        warp_weight = head_count * warp_d / 9000
+        # 计算纬向克重
+        weft_weight = weft_density * (width + 12) / 9000 * weft_d
+        # 计算经纱成本
+        warp_cost = (warp_weight * (warp_price / 1000) + warping_cost) * shrinkage
+        # 计算纬纱成本
+        weft_cost = weft_weight * (weft_price / 1000)
+        # 计算成本价
+        cost_price = warp_cost + weft_cost
+        # 计算日产量
+        daily_output = machine_speed * 24 * 60 * 0.92 / weft_density / 100
+        # 计算日利润
+        daily_profit = (invoice_price - cost_price) * daily_output
+
+        return {
+            'warp_weight': round(warp_weight, 2),
+            'weft_weight': round(weft_weight, 2),
+            'warp_cost': round(warp_cost, 2),
+            'weft_cost': round(weft_cost, 2),
+            'cost_price': round(cost_price, 2),
+            'daily_output': round(daily_output, 2),
+            'daily_profit': round(daily_profit, 2)
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+@app.route('/', methods=['GET'])
+def index():
+    return render_template_string(CALCULATOR_HTML, result=None)
+
+@app.route('/calculate', methods=['POST'])
+def calculate():
+    data = request.form
+    result = calculate_profit(data)
+    return render_template_string(CALCULATOR_HTML, result=result)
+
 CALCULATOR_HTML = """
 <!DOCTYPE html>
 <html lang="zh">
@@ -18,9 +69,6 @@ CALCULATOR_HTML = """
             padding: 20px;
             background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
             color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
         }
         .calculator {
@@ -28,8 +76,11 @@ CALCULATOR_HTML = """
             padding: 20px;
             border-radius: 20px;
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            width: 900px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
             display: flex;
+            flex-direction: column;
             gap: 20px;
         }
         .input-section, .result-section {
@@ -38,12 +89,18 @@ CALCULATOR_HTML = """
             border-radius: 15px;
             box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
         }
-        .input-section {
-            width: 400px;
+        @media (min-width: 600px) {
+            .calculator {
+                flex-direction: row;
+            }
+            .input-section, .result-section {
+                width: 400px;
+            }
         }
-        .result-section {
-            width: 400px;
-            background: #e8f4f8;
+        @media (max-width: 600px) {
+            .input-section, .result-section {
+                width: 100%;
+            }
         }
         h1 {
             color: #fff;
@@ -142,23 +199,6 @@ CALCULATOR_HTML = """
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        @media (max-width: 600px) {
-            .calculator {
-                flex-direction: column;
-                width: 100%;
-            }
-            .input-section, .result-section {
-                width: 100%;
-            }
-            .button-group {
-                flex-direction: column;
-                gap: 10px;
-            }
-            input[type="submit"], #reset-button {
-                width: 100%;
-                border-radius: 10px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -168,7 +208,7 @@ CALCULATOR_HTML = """
             <form id="calcForm" method="post" action="/calculate">
                 <label>门幅 (厘米):</label>
                 <input type="number" name="width" step="0.1" required value="{{ width or '' }}">
-                <label>纬密 (根/梭):</label>
+                <label>纬密 (根/厘米):</label>
                 <input type="number" name="weft_density" step="0.1" required value="{{ weft_density or '' }}">
                 <label>头份 (根):</label>
                 <input type="number" name="head_count" required value="{{ head_count or '' }}">
@@ -197,16 +237,20 @@ CALCULATOR_HTML = """
         <div class="result-section">
             <h3>计算结果</h3>
             {% if result %}
-                <table class="result-table">
-                    <tr><th>项目</th><th>值</th></tr>
-                    <tr><td>经向克重</td><td>{{ result['warp_weight'] }} 克</td></tr>
-                    <tr><td>纬向克重</td><td>{{ result['weft_weight'] }} 克</td></tr>
-                    <tr><td>经纱成本</td><td>{{ result['warp_cost'] }} 元</td></tr>
-                    <tr><td>纬纱成本</td><td>{{ result['weft_cost'] }} 元</td></tr>
-                    <tr><td>成本价</td><td>{{ result['cost_price'] }} 元/米</td></tr>
-                    <tr><td>日产量</td><td>{{ result['daily_output'] }} 米</td></tr>
-                    <tr><td>日利润</td><td>{{ result['daily_profit'] }} 元</td></tr>
-                </table>
+                {% if result.error %}
+                    <p style="color: red;">错误：{{ result.error }}</p>
+                {% else %}
+                    <table class="result-table">
+                        <tr><th>项目</th><th>值</th></tr>
+                        <tr><td>经向克重</td><td>{{ result.warp_weight }} 克</td></tr>
+                        <tr><td>纬向克重</td><td>{{ result.weft_weight }} 克</td></tr>
+                        <tr><td>经纱成本</td><td>{{ result.warp_cost }} 元</td></tr>
+                        <tr><td>纬纱成本</td><td>{{ result.weft_cost }} 元</td></tr>
+                        <tr><td>成本价</td><td>{{ result.cost_price }} 元/米</td></tr>
+                        <tr><td>日产量</td><td>{{ result.daily_output }} 米</td></tr>
+                        <tr><td>日利润</td><td>{{ result.daily_profit }} 元</td></tr>
+                    </table>
+                {% endif %}
             {% else %}
                 <p>输入参数后点击“计算”查看结果！</p>
             {% endif %}
@@ -221,65 +265,6 @@ CALCULATOR_HTML = """
 </body>
 </html>
 """
-
-@app.route('/', methods=['GET'])
-def index():
-    return render_template_string(CALCULATOR_HTML, result=None)
-
-@app.route('/calculate', methods=['POST'])
-def calculate():
-    try:
-        # 获取输入参数
-        width = float(request.form['width'])
-        weft_density = float(request.form['weft_density'])
-        head_count = float(request.form['head_count'])
-        warp_d = float(request.form['warp_d'])
-        weft_d = float(request.form['weft_d'])
-        warp_price = float(request.form['warp_price'])
-        weft_price = float(request.form['weft_price'])
-        machine_speed = float(request.form['machine_speed'])
-        shrinkage = float(request.form['shrinkage'])
-        warping_cost = float(request.form['warping_cost'])
-        invoice_price = float(request.form['invoice_price'])
-
-        # 计算中间结果
-        warp_weight = head_count * warp_d / 9000
-        weft_weight = weft_density * (width + 12) / 9000 * weft_d
-        warp_cost = (warp_weight * (warp_price / 1000) + warping_cost) * shrinkage
-        weft_cost = weft_weight * (weft_price / 1000)
-        cost_price = warp_cost + weft_cost
-        daily_output = machine_speed * 24 * 60 * 0.92 / weft_density / 100
-        daily_profit = (invoice_price - cost_price) * daily_output
-
-        # 保留两位小数
-        result = {
-            'warp_weight': round(warp_weight, 2),
-            'weft_weight': round(weft_weight, 2),
-            'warp_cost': round(warp_cost, 2),
-            'weft_cost': round(weft_cost, 2),
-            'cost_price': round(cost_price, 2),
-            'daily_output': round(daily_output, 2),
-            'daily_profit': round(daily_profit, 2)
-        }
-
-        # 将输入值传回表单以保持显示
-        inputs = {
-            'width': width,
-            'weft_density': weft_density,
-            'head_count': head_count,
-            'warp_d': warp_d,
-            'weft_d': weft_d,
-            'warp_price': warp_price,
-            'weft_price': weft_price,
-            'machine_speed': machine_speed,
-            'shrinkage': shrinkage,
-            'warping_cost': warping_cost,
-            'invoice_price': invoice_price
-        }
-
-        return render_template_string(CALCULATOR_HTML, result=result, **inputs)
-    except Exception as e:
-        return render_template_string(CALCULATOR_HTML, result=f"计算错误: {str(e)}")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
