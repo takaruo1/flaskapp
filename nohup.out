@@ -1,0 +1,57 @@
+[2025-02-26 14:33:16 +0800] [106806] [INFO] Starting gunicorn 23.0.0
+[2025-02-26 14:33:16 +0800] [106806] [INFO] Listening at: http://0.0.0.0:8080 (106806)
+[2025-02-26 14:33:16 +0800] [106806] [INFO] Using worker: sync
+[2025-02-26 14:33:16 +0800] [106810] [INFO] Booting worker with pid: 106810
+[2025-02-26 14:33:16 +0800] [106835] [INFO] Booting worker with pid: 106835
+[2025-02-26 14:33:16 +0800] [106837] [INFO] Booting worker with pid: 106837
+[2025-02-26 20:34:13 +0800] [106806] [INFO] Handling signal: hup
+[2025-02-26 20:34:13 +0800] [106806] [INFO] Hang up: Master
+--- Logging error ---
+Traceback (most recent call last):
+  File "/usr/lib/python3.8/logging/__init__.py", line 1089, in emit
+    self.flush()
+  File "/usr/lib/python3.8/logging/__init__.py", line 1069, in flush
+    self.stream.flush()
+RuntimeError: reentrant call inside <_io.BufferedWriter name='<stderr>'>
+Call stack:
+  File "/var/www/flaskapp/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/arbiter.py", line 223, in run
+    handler()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/arbiter.py", line 251, in handle_hup
+    self.log.info("Hang up: %s", self.master_name)
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/glogging.py", line 277, in info
+    self.error_log.info(msg, *args, **kwargs)
+  File "/usr/lib/python3.8/logging/__init__.py", line 1446, in info
+    self._log(INFO, msg, args, **kwargs)
+  File "/usr/lib/python3.8/logging/__init__.py", line 1589, in _log
+    self.handle(record)
+  File "/usr/lib/python3.8/logging/__init__.py", line 1599, in handle
+    self.callHandlers(record)
+  File "/usr/lib/python3.8/logging/__init__.py", line 1661, in callHandlers
+    hdlr.handle(record)
+  File "/usr/lib/python3.8/logging/__init__.py", line 954, in handle
+    self.emit(record)
+  File "/usr/lib/python3.8/logging/__init__.py", line 1089, in emit
+    self.flush()
+  File "/usr/lib/python3.8/logging/__init__.py", line 1069, in flush
+    self.stream.flush()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/arbiter.py", line 553, in reap_workers
+    self.log.error(msg)
+  File "/var/www/flaskapp/venv/lib/python3.8/site-packages/gunicorn/glogging.py", line 271, in error
+    self.error_log.error(msg, *args, **kwargs)
+Message: 'Worker (pid:106837) was sent SIGHUP!'
+Arguments: ()
+[2025-02-26 20:34:13 +0800] [106806] [ERROR] Worker (pid:106810) was sent SIGHUP!
+[2025-02-26 20:34:13 +0800] [106806] [ERROR] Worker (pid:106835) was sent SIGHUP!
+[2025-02-26 20:34:13 +0800] [107422] [INFO] Booting worker with pid: 107422
+[2025-02-26 20:34:13 +0800] [107423] [INFO] Booting worker with pid: 107423
+[2025-02-26 20:34:13 +0800] [107424] [INFO] Booting worker with pid: 107424
